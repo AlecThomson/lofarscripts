@@ -1,50 +1,95 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
-import casacore.tables as pt
-from os import path
-import sys
+from casacore.tables import table, taql
+from pathlib import Path
 from shutil import copytree
 import argparse
 
 
-def addsubtable(msfile, subtablefile, name=None, dry_run=False):
+def _copy_subtable(
+    ms_path: Path,
+    subtable_path: Path,
+    dry_run: bool = False,
+) -> Path:
+    subtable_dest_path = ms_path / subtable_path.name
+    if subtable_dest_path.exists():
+        print(f"Subtable {subtable_dest_path} already exists, skipping copy.")
+        return subtable_dest_path
+
+    verb = "Would copy" if dry_run else "Copying"
+    print(f"{verb} {subtable_path} into {subtable_dest_path}")
+    if dry_run:
+        return subtable_dest_path
+
+    copytree(subtable_path, subtable_dest_path)
+    return subtable_dest_path
+
+
+def _update_ms(
+    ms_path: Path,
+    subtable_path: Path,
+    telescope_name: str | None = None,
+    dry_run: bool = False,
+) -> Path:
+    if dry_run:
+        print(f"Would make {subtable_path.name} a subtable of {ms_path}")
+        if telescope_name is not None:
+            print(
+                f"Would set TELESCOPE_NAME={telescope_name} in {ms_path}::OBSERVATION"
+            )
+        return ms_path
+
+    with table(str(ms_path), readonly=False, ack=False) as tab:
+        with table(str(subtable_path), ack=False) as sub_tab:
+            tab.putkeyword(subtable_path.name, sub_tab, makesubrecord=True)
+        if telescope_name is not None:
+            taql(f"UPDATE $tab::OBSERVATION SET TELESCOPE_NAME='{telescope_name}'")
+
+    return ms_path
+
+
+def addsubtable(
+    msfile: str | Path,
+    subtablefile: str | Path,
+    telescope_name: str | None = None,
+    dry_run: bool = False,
+) -> Path:
     """Adds an existing table as a subtable to another table
     The subtable is copied into the MS if it is not a subdirectory already"""
 
-    subtablename = path.basename(subtablefile.rstrip("/"))
+    ms_path = Path(msfile)
+    subtable_path = Path(subtablefile)
 
-    if path.commonpath([msfile, subtablefile]) != path.commonpath([msfile]):
-        print(f"Copying {subtablefile} into {path.join(msfile, subtablename)}")
-        if not dry_run:
-            copytree(subtablefile, path.join(msfile, subtablename))
-        subtablefile = path.join(msfile, subtablename)
+    subtable_path_in_ms = _copy_subtable(ms_path, subtable_path, dry_run=dry_run)
+    updated_ms_path = _update_ms(
+        ms_path, subtable_path_in_ms, telescope_name=telescope_name, dry_run=dry_run
+    )
 
-    t = pt.table(msfile, readonly=False, ack=False)
-    sub = pt.table(subtablefile, ack=False)
-    if not dry_run:
-        t.putkeyword(subtablename, sub, makesubrecord=True)
-    else:
-        print(f"Would make {subtablename} a subtable of {msfile}")
-    sub.close()
-
-    if name is not None:
-        if dry_run:
-            print(f"Would set TELESCOPE_NAME={name} in {msfile}::OBSERVATION")
-        else:
-            pt.taql(f"UPDATE $t::OBSERVATION SET TELESCOPE_NAME='{name}'")
-
-    t.close()
+    print("Done!")
+    return updated_ms_path
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Copy an existing table (e.g. PHASED_ARRAY) to another table as a subtable"
     )
-    parser.add_argument("ms", help="Master measurement set")
-    parser.add_argument("subtable", help="Subtable to add")
-    parser.add_argument("-n", "--dry-run", help="Dry run", action="store_true")
-    parser.add_argument("--name", help="Set telescope name", type=str)
+    parser.add_argument("ms", help="Path to target MeasurementSet", type=Path)
+    parser.add_argument("subtable", help="Path to subtable to add", type=Path)
+    parser.add_argument("-d", "--dry-run", help="Dry run", action="store_true")
+    parser.add_argument(
+        "-n", "--name", help="Set telescope name", type=str, default=None
+    )
 
     args = parser.parse_args()
 
-    addsubtable(args.ms, args.subtable, dry_run=args.dry_run, name=args.name)
+    _ = addsubtable(
+        msfile=args.ms,
+        subtablefile=args.subtable,
+        dry_run=args.dry_run,
+        telescope_name=args.name,
+    )
+
+
+if __name__ == "__main__":
+    main()
