@@ -5,6 +5,15 @@ from casacore.tables import table, taql
 from pathlib import Path
 from shutil import copytree
 import argparse
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+formatter = logging.Formatter("%(levelname)s: %(message)s")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 
 def _copy_subtable(
@@ -14,11 +23,11 @@ def _copy_subtable(
 ) -> Path:
     subtable_dest_path = ms_path / subtable_path.name
     if subtable_dest_path.exists():
-        print(f"Subtable {subtable_dest_path} already exists, skipping copy.")
+        logger.info(f"Subtable {subtable_dest_path} already exists, skipping copy.")
         return subtable_dest_path
 
     verb = "Would copy" if dry_run else "Copying"
-    print(f"{verb} {subtable_path} into {subtable_dest_path}")
+    logger.info(f"{verb} {subtable_path} into {subtable_dest_path}")
     if dry_run:
         return subtable_dest_path
 
@@ -33,9 +42,9 @@ def _update_ms(
     dry_run: bool = False,
 ) -> Path:
     if dry_run:
-        print(f"Would make {subtable_path.name} a subtable of {ms_path}")
+        logger.info(f"Would make {subtable_path.name} a subtable of {ms_path}")
         if telescope_name is not None:
-            print(
+            logger.info(
                 f"Would set TELESCOPE_NAME={telescope_name} in {ms_path}::OBSERVATION"
             )
         return ms_path
@@ -66,7 +75,7 @@ def addsubtable(
         ms_path, subtable_path_in_ms, telescope_name=telescope_name, dry_run=dry_run
     )
 
-    print("Done!")
+    logger.info("Done!")
     return updated_ms_path
 
 
