@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Circle
 
+
 def plot_hba(station_name, ax=None, centre=None, subfield="", labels=False):
     """
     Plot LOFAR HBA tiles for one station
@@ -61,6 +62,7 @@ def plot_hba(station_name, ax=None, centre=None, subfield="", labels=False):
                 num += 24
             ax.text(x, y, str(num))
 
+
 def plot_lba(station_name, ax=None, centre=None, labels=False):
     """
     Plot LOFAR LBA locations for one station
@@ -89,6 +91,7 @@ def plot_lba(station_name, ax=None, centre=None, labels=False):
             x, y = xy
             ax.text(x, y, str(num))
 
+
 def plot_cabinet(station_name, ax=None, centre=None, labels=False):
     """
     Plot LOFAR cabinet location for one station
@@ -114,6 +117,7 @@ def plot_cabinet(station_name, ax=None, centre=None, labels=False):
     if labels:
         ax.text(x, y, station_name + " cabinet")
 
+
 def plot_station(station_name, ax=None, centre=None, labels=False):
     """
     Plot a LOFAR station
@@ -135,10 +139,11 @@ def plot_station(station_name, ax=None, centre=None, labels=False):
     plot_hba(station_name, ax=ax, centre=centre, labels=labels)
     plot_cabinet(station_name, ax=ax, centre=centre, labels=labels)
 
+
 def plot_superterp(ax=None, labels=False, plot_circle=True):
     """
     Plot the LOFAR superterp
-    
+
     Args:
         ax: existing matplotlib axes object to use
         labels: add labels

@@ -6,22 +6,28 @@ from lofar.stationresponse import stationresponse
 import casacore.tables as pt
 import numpy as np
 
-msname="~/leah.MS"
+msname = "~/leah.MS"
 
-sr = stationresponse(msname=msname, inverse=False, useElementResponse=True, useArrayFactor=True, useChanFreq=True)
+sr = stationresponse(
+    msname=msname,
+    inverse=False,
+    useElementResponse=True,
+    useArrayFactor=True,
+    useChanFreq=True,
+)
 
 ms = pt.table(msname, ack=False)
 
-time = ms.getcol('TIME')[0]
+time = ms.getcol("TIME")[0]
 
-#sr.setDirection(myra_in_rad, mydec_in_rad) # default is phase center
+# sr.setDirection(myra_in_rad, mydec_in_rad) # default is phase center
 
 itrfdir = sr.getDirection(time)
 refdelay = sr.getRefDelay(time)
 reftile = sr.getRefTile(time)
 
-freqtable = pt.table(msname+'::SPECTRAL_WINDOW')
-freqs = freqtable[0]['CHAN_FREQ']
+freqtable = pt.table(msname + "::SPECTRAL_WINDOW")
+freqs = freqtable[0]["CHAN_FREQ"]
 
 station = 0
 
